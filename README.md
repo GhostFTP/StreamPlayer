@@ -55,6 +55,34 @@ A self-hosted personal streaming platform built with React + Vite (frontend) and
 
 ---
 
+## Screenshots
+
+### Library
+![Library](screenshots/library.png)
+
+### Navigation Menu
+![Navigation Menu](screenshots/menu.png)
+
+### Movie Detail
+![Movie Detail](screenshots/movie_detail.png)
+
+### Series Detail
+![Series Detail](screenshots/series_detail.png)
+
+### Browse Files
+![Browse Files](screenshots/browse.png)
+
+### Admin Panel
+![Admin Panel](screenshots/admin.png)
+
+### Profile
+![Profile](screenshots/profile.png)
+
+### Mobile
+![Mobile](screenshots/mobile.png)
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
