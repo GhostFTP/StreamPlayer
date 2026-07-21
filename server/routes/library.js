@@ -2,7 +2,8 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const auth = require('../middleware/auth');
-const { MEDIA_ROOT } = require('../config');
+const { MEDIA_ROOT, TMDB_API_KEY } = require('../config');
+const { getPosterUrl: tmdbPoster } = require('../tmdb');
 
 const router = express.Router();
 
@@ -127,7 +128,7 @@ function scanSeriesFolder(dir) {
   return { seasons, detectedYear };
 }
 
-router.get('/', auth, (_req, res) => {
+router.get('/', auth, async (_req, res) => {
   const moviesDir = path.join(MEDIA_ROOT, 'Movies');
   const seriesDir = path.join(MEDIA_ROOT, 'Series');
   const movies    = [];
@@ -153,17 +154,20 @@ router.get('/', auth, (_req, res) => {
 
       const genres = parseGenres(meta);
       genres.forEach(g => genreSet.add(g));
+      const title = meta.title || path.basename(e.name, path.extname(e.name));
+      const year  = meta.year ?? null;
 
       movies.push({
         id: e.name.replace(/[^a-z0-9]/gi, '-').toLowerCase(),
-        title: meta.title || path.basename(e.name, path.extname(e.name)),
-        year: meta.year ?? null,
+        title,
+        year,
         genres,
         description: meta.description ?? null,
         director:    meta.director    ?? null,
         cast:        Array.isArray(meta.cast) ? meta.cast : (meta.cast ? [meta.cast] : []),
         runtime:     meta.runtime     ?? null,
-        posterUrl:   posterUrl(e.isDirectory() ? findPosterPath(full) : null, videoPath),
+        _localPoster: e.isDirectory() ? findPosterPath(full) : null,
+        _videoPath:   videoPath,
         videoPath,
         path: itemPath,
         hasSubtitles: e.isDirectory() ? dirHasSubs(full) : false,
@@ -193,13 +197,36 @@ router.get('/', auth, (_req, res) => {
         creator:      meta.creator     ?? null,
         cast:         Array.isArray(meta.cast) ? meta.cast : (meta.cast ? [meta.cast] : []),
         runtime:      meta.runtime     ?? null,
-        posterUrl:    posterUrl(findPosterPath(full), findFirstVideo(full)),
+        _localPoster: findPosterPath(full),
+        _videoPath:   findFirstVideo(full),
         path:         rel(full),
         seasons,
         episodeCount: seasons.reduce((s, se) => s + se.episodes.length, 0),
       });
     }
   }
+
+  // ── Resolve poster URLs (TMDB fallback) ─────────────────
+  await Promise.all([
+    ...movies.map(async m => {
+      if (m._localPoster) {
+        m.posterUrl = `/api/poster?path=${encodeURIComponent(m._localPoster)}`;
+      } else {
+        const tmdb = await tmdbPoster('movie', m.title, m.year, TMDB_API_KEY);
+        m.posterUrl = tmdb ?? (m._videoPath ? `/api/thumbnail?path=${encodeURIComponent(m._videoPath)}` : null);
+      }
+      delete m._localPoster; delete m._videoPath;
+    }),
+    ...series.map(async s => {
+      if (s._localPoster) {
+        s.posterUrl = `/api/poster?path=${encodeURIComponent(s._localPoster)}`;
+      } else {
+        const tmdb = await tmdbPoster('tv', s.title, s.year, TMDB_API_KEY);
+        s.posterUrl = tmdb ?? (s._videoPath ? `/api/thumbnail?path=${encodeURIComponent(s._videoPath)}` : null);
+      }
+      delete s._localPoster; delete s._videoPath;
+    }),
+  ]);
 
   movies.sort((a, b) => a.title.localeCompare(b.title));
   series.sort((a, b) => a.title.localeCompare(b.title));

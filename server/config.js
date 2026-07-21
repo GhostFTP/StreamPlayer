@@ -9,4 +9,5 @@ module.exports = {
     : path.resolve(__dirname, '..', 'media'),
   CLIENT_ORIGIN: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
   NODE_ENV: process.env.NODE_ENV || 'development',
+  TMDB_API_KEY: process.env.TMDB_API_KEY || null,
 };

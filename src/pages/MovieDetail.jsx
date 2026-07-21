@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import Navbar from '../components/Navbar.jsx';
 import { isFavorite, toggleFavorite } from '../utils/favorites.js';
+import { buildPosterSrc } from '../utils/poster.js';
 
 export default function MovieDetail() {
   const location = useLocation();
@@ -21,9 +22,7 @@ export default function MovieDetail() {
     return null;
   }
 
-  const posterSrc = movie.posterUrl
-    ? `${movie.posterUrl}&token=${encodeURIComponent(token)}`
-    : null;
+  const posterSrc = buildPosterSrc(movie.posterUrl, token);
 
   function play() {
     navigate('/player', { state: { filePath: movie.videoPath, fileName: movie.title, posterUrl: movie.posterUrl } });

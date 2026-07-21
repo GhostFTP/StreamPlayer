@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { buildPosterSrc } from '../utils/poster.js';
 
 export default function MediaCard({ item, type, onClick, progress, isFav, onToggleFavorite }) {
   const { token } = useAuth();
   const [imgError, setImgError] = useState(false);
 
-  const imgSrc = item.posterUrl
-    ? `${item.posterUrl}&token=${encodeURIComponent(token)}`
-    : null;
+  const imgSrc = buildPosterSrc(item.posterUrl, token);
 
   return (
     <div className="media-card" onClick={onClick}>

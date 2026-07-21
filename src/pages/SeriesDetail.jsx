@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import Navbar from '../components/Navbar.jsx';
 import { isFavorite, toggleFavorite } from '../utils/favorites.js';
+import { buildPosterSrc } from '../utils/poster.js';
 
 function formatRuntime(minutes) {
   if (!minutes) return null;
@@ -30,9 +31,7 @@ export default function SeriesDetail() {
     return null;
   }
 
-  const posterSrc = series.posterUrl
-    ? `${series.posterUrl}&token=${encodeURIComponent(token)}`
-    : null;
+  const posterSrc = buildPosterSrc(series.posterUrl, token);
 
   function playEpisode(ep) {
     navigate('/player', { state: { filePath: ep.path, fileName: ep.title, posterUrl: series.posterUrl } });

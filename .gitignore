@@ -7,3 +7,4 @@ server/.env
 media/
 .claude/
 .directory
+server/poster-cache.json
