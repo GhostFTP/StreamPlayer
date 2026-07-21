@@ -8,7 +8,8 @@ A self-hosted personal streaming platform built with React + Vite (frontend) and
 
 ### Library
 - **Movies & Series** organized in separate sections
-- **Poster / cover art** loaded from `poster.jpg` in each folder, or auto-generated thumbnail from the video
+- **Poster / cover art** — priority order: local `poster.jpg` → TMDB API → ffmpeg thumbnail fallback
+- **TMDB integration** — when no local poster exists, the server automatically fetches the official artwork from [The Movie Database](https://www.themoviedb.org/) and caches the result locally
 - **Genre filtering** via chip bar — click a genre to filter both movies and series
 - **Global search** in the navbar — searches across titles in real time, URL-based (shareable links)
 - **Continue Watching** — tracks playback progress per user, resumes exactly where you left off; remove individual items with ✕
@@ -92,6 +93,7 @@ A self-hosted personal streaming platform built with React + Vite (frontend) and
 | Auth | JWT (`jsonwebtoken`), bcrypt (`bcryptjs`) |
 | Media | ffmpeg (thumbnails, subtitle extraction), ffprobe (stream detection) |
 | Subtitles | SRT → WebVTT (regex), ASS → WebVTT (ffmpeg), embedded MKV via `ffmpeg pipe:1` |
+| Poster art | TMDB API (auto-fetch + disk cache) with local file and ffmpeg fallback |
 | Storage | `users.json` (flat file), `localStorage` per user (progress, favorites) |
 
 ---
@@ -128,11 +130,13 @@ StreamPlayer/
 │   │   └── Admin.jsx
 │   └── utils/
 │       ├── progress.js         # continue watching (localStorage, per user)
-│       └── favorites.js        # favorites (localStorage, per user)
+│       ├── favorites.js        # favorites (localStorage, per user)
+│       └── poster.js           # buildPosterSrc — handles internal vs TMDB URLs
 │
 ├── server/                     # Express backend
 │   ├── index.js
-│   ├── config.js               # PORT, JWT_SECRET, MEDIA_ROOT
+│   ├── config.js               # PORT, JWT_SECRET, MEDIA_ROOT, TMDB_API_KEY
+│   ├── tmdb.js                 # TMDB poster lookup with disk cache
 │   ├── users.json              # user store (username, hashed password, role)
 │   ├── add-user.js             # CLI helper to add/update users
 │   ├── .env.example
@@ -200,7 +204,10 @@ JWT_SECRET=replace-with-a-long-random-secret
 MEDIA_ROOT=/absolute/path/to/your/media
 CLIENT_ORIGIN=http://localhost:5173
 NODE_ENV=development
+TMDB_API_KEY=your_tmdb_api_key_here
 ```
+
+> **TMDB API key** (optional but recommended): register at [themoviedb.org](https://www.themoviedb.org/signup), go to **Settings → API → Create → Developer** and copy the v3 key. Without it the server falls back to ffmpeg-generated thumbnails.
 
 ### 3. Add the first user
 
@@ -256,7 +263,7 @@ Place each movie in its own folder inside `media/Movies/`:
 ```
 media/Movies/Inception/
 ├── Inception.mkv        # or .mp4, .avi, etc.
-├── poster.jpg           # optional cover art (also: poster.png, cover.jpg)
+├── poster.jpg           # optional — fetched from TMDB automatically if missing
 └── metadata.json        # optional metadata
 ```
 
@@ -285,7 +292,7 @@ media/Series/Breaking Bad/
 │   └── Breaking.Bad.S01E02.mkv
 ├── Season 2/
 │   └── Breaking.Bad.S02E01.mkv
-├── poster.jpg
+├── poster.jpg           # optional — fetched from TMDB automatically if missing
 └── metadata.json
 ```
 
@@ -350,6 +357,7 @@ Stream auth accepts both `Authorization: Bearer <token>` header and `?token=` qu
 | `MEDIA_ROOT` | `../media` | Absolute path to your media library |
 | `CLIENT_ORIGIN` | `http://localhost:5173` | CORS allowed origin |
 | `NODE_ENV` | `development` | Set to `production` to serve built frontend |
+| `TMDB_API_KEY` | `null` | [TMDB](https://www.themoviedb.org/) v3 API key for automatic poster art |
 
 ---
 
