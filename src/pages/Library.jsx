@@ -10,6 +10,7 @@ export default function Library() {
   const { token, username }           = useAuth();
   const [data, setData]               = useState({ movies: [], series: [], genres: [] });
   const [activeGenre, setActiveGenre] = useState('All');
+  const [sortBy, setSortBy]           = useState('title'); // 'title' | 'recent'
   const [loading, setLoading]         = useState(true);
   const [continueItems, setContinueItems] = useState([]);
   const [favorites,     setFavorites]     = useState(() => getFavoriteIds(username));
@@ -50,13 +51,15 @@ export default function Library() {
   }
 
   function filter(items) {
-    return items
+    const filtered = items
       .filter(i => !query || i.title.toLowerCase().includes(query))
       .filter(i => {
         if (activeGenre === 'All') return true;
         if (activeGenre === '♥ Favorites') return favorites.has(i.id);
         return i.genres.includes(activeGenre);
       });
+    if (sortBy === 'recent') return [...filtered].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+    return filtered;
   }
 
   const movies = filter(data.movies);
@@ -100,20 +103,26 @@ export default function Library() {
           </section>
         )}
 
-        {/* Genre filter — hidden while searching */}
-        {!query && data.genres.length > 0 && (
-          <div className="genre-bar">
-            {['All', '♥ Favorites', ...data.genres].map(g => (
-              <button
-                key={g}
-                className={`genre-chip${activeGenre === g ? ' active' : ''}${g === '♥ Favorites' ? ' fav-chip' : ''}`}
-                onClick={() => setActiveGenre(g)}
-              >
-                {g}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Genre filter (hidden while searching) + sort control */}
+        <div className="library-toolbar">
+          {!query && data.genres.length > 0 && (
+            <div className="genre-bar">
+              {['All', '♥ Favorites', ...data.genres].map(g => (
+                <button
+                  key={g}
+                  className={`genre-chip${activeGenre === g ? ' active' : ''}${g === '♥ Favorites' ? ' fav-chip' : ''}`}
+                  onClick={() => setActiveGenre(g)}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+          )}
+          <select className="sort-select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+            <option value="title">Title (A–Z)</option>
+            <option value="recent">Recently Added</option>
+          </select>
+        </div>
 
         {loading ? (
           <div className="loading">Loading library…</div>

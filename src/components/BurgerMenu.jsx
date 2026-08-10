@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { APP_VERSION } from '../data/changelog.js';
 
 const NAV_ITEMS = [
   { icon: '🎬', label: 'Library',      path: '/' },
@@ -17,6 +18,7 @@ export default function BurgerMenu({ isOpen, onClose }) {
     { icon: '♥',  label: 'Favorites',    path: '/',                search: '?filter=favorites' },
     { icon: '📁', label: 'Browse Files', path: '/browse',          search: '' },
     ...(role === 'admin' ? [{ icon: '⚙️', label: 'Users', path: '/admin', search: '' }] : []),
+    { icon: '🆕', label: 'Novedades', path: '/changelog', search: '' },
   ];
 
   useEffect(() => {
@@ -82,6 +84,7 @@ export default function BurgerMenu({ isOpen, onClose }) {
             </div>
           </button>
           <button className="burger-logout" onClick={handleLogout}>Logout</button>
+          <span className="burger-version">v{APP_VERSION}</span>
         </div>
       </aside>
     </>

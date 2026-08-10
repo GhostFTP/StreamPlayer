@@ -33,8 +33,17 @@ export default function SeriesDetail() {
 
   const posterSrc = buildPosterSrc(series.posterUrl, token);
 
-  function playEpisode(ep) {
-    navigate('/player', { state: { filePath: ep.path, fileName: ep.title, posterUrl: series.posterUrl } });
+  function playEpisode(ep, season) {
+    navigate('/player', {
+      state: {
+        filePath: ep.path,
+        fileName: ep.title,
+        posterUrl: series.posterUrl,
+        series,
+        seasonNumber: season.number,
+        episodeNumber: ep.number,
+      },
+    });
   }
 
   return (
@@ -112,7 +121,7 @@ export default function SeriesDetail() {
                       {ep.hasSubtitles && <span className="ep-sub-badge">CC</span>}
                       <button
                         className="episode-play-btn"
-                        onClick={() => playEpisode(ep)}
+                        onClick={() => playEpisode(ep, season)}
                       >
                         ▶ Play
                       </button>

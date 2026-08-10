@@ -9,6 +9,7 @@ import MovieDetail from './pages/MovieDetail.jsx';
 import Player from './pages/Player.jsx';
 import Profile from './pages/Profile.jsx';
 import Admin from './pages/Admin.jsx';
+import Changelog from './pages/Changelog.jsx';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/player"  element={<PrivateRoute><Player /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/admin"   element={<PrivateRoute><Admin /></PrivateRoute>} />
+        <Route path="/changelog" element={<PrivateRoute><Changelog /></PrivateRoute>} />
         <Route path="*"       element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>

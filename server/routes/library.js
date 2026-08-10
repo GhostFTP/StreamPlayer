@@ -50,6 +50,10 @@ function findFirstVideo(dir) {
   return null;
 }
 
+function addedAtOf(p) {
+  try { return fs.statSync(p).mtimeMs; } catch { return 0; }
+}
+
 function dirHasSubs(dir) {
   try { return fs.readdirSync(dir).some(isSub); } catch { return false; }
 }
@@ -166,6 +170,7 @@ router.get('/', auth, async (_req, res) => {
         director:    meta.director    ?? null,
         cast:        Array.isArray(meta.cast) ? meta.cast : (meta.cast ? [meta.cast] : []),
         runtime:     meta.runtime     ?? null,
+        addedAt:     addedAtOf(full),
         _localPoster: e.isDirectory() ? findPosterPath(full) : null,
         _videoPath:   videoPath,
         videoPath,
@@ -197,6 +202,7 @@ router.get('/', auth, async (_req, res) => {
         creator:      meta.creator     ?? null,
         cast:         Array.isArray(meta.cast) ? meta.cast : (meta.cast ? [meta.cast] : []),
         runtime:      meta.runtime     ?? null,
+        addedAt:      addedAtOf(full),
         _localPoster: findPosterPath(full),
         _videoPath:   findFirstVideo(full),
         path:         rel(full),

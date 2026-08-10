@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { JWT_SECRET } = require('../config');
 const auth = require('../middleware/auth');
+const { loginRateLimit, recordLoginFailure, recordLoginSuccess } = require('../middleware/loginRateLimit');
 
 const router = express.Router();
 const USERS_FILE = path.join(__dirname, '..', 'users.json');
@@ -18,17 +19,24 @@ function writeUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginRateLimit, async (req, res) => {
   const { username, password } = req.body ?? {};
   if (!username || !password) return res.status(400).json({ error: 'Username and password are required' });
 
   const users = readUsers();
   const user = users.find(u => u.username === username);
-  if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+  if (!user) {
+    recordLoginFailure(req);
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
 
   const valid = await bcrypt.compare(password, user.password);
-  if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+  if (!valid) {
+    recordLoginFailure(req);
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
 
+  recordLoginSuccess(req);
   const role = user.role || 'user';
   const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '7d' });
   res.json({ token, username, role });

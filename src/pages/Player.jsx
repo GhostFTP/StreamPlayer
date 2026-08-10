@@ -9,7 +9,7 @@ export default function Player() {
   const location = useLocation();
   const navigate = useNavigate();
   const { token, username } = useAuth();
-  const { filePath, fileName, posterUrl } = location.state || {};
+  const { filePath, fileName, posterUrl, series, seasonNumber, episodeNumber } = location.state || {};
   const [subtitleTracks, setSubtitleTracks] = useState([]);
 
   const initialTime = filePath ? getInitialTime(username, filePath) : 0;
@@ -17,6 +17,42 @@ export default function Player() {
   const handleProgress = useCallback((currentTime, duration) => {
     saveProgress(username, filePath, { title: fileName, posterUrl, currentTime, duration });
   }, [username, filePath, fileName, posterUrl]);
+
+  function findNextEpisode() {
+    if (!series || seasonNumber == null || episodeNumber == null) return null;
+    const seasonIdx = series.seasons.findIndex(s => s.number === seasonNumber);
+    if (seasonIdx === -1) return null;
+    const season = series.seasons[seasonIdx];
+    const epIdx = season.episodes.findIndex(e => e.number === episodeNumber);
+    if (epIdx === -1) return null;
+
+    if (epIdx + 1 < season.episodes.length) {
+      const ep = season.episodes[epIdx + 1];
+      return { ep, seasonNumber: season.number };
+    }
+    const nextSeason = series.seasons[seasonIdx + 1];
+    if (nextSeason?.episodes.length > 0) {
+      return { ep: nextSeason.episodes[0], seasonNumber: nextSeason.number };
+    }
+    return null;
+  }
+
+  const next = findNextEpisode();
+  const nextEpisode = next ? { fileName: next.ep.title } : null;
+
+  function handlePlayNext() {
+    if (!next) return;
+    navigate('/player', {
+      state: {
+        filePath: next.ep.path,
+        fileName: next.ep.title,
+        posterUrl,
+        series,
+        seasonNumber: next.seasonNumber,
+        episodeNumber: next.ep.number,
+      },
+    });
+  }
 
   useEffect(() => {
     if (!filePath) { navigate('/', { replace: true }); return; }
@@ -40,10 +76,15 @@ export default function Player() {
         <h2 className="video-title">{fileName}</h2>
         <VideoPlayer
           src={streamUrl}
+          filePath={filePath}
           subtitleTracks={subtitleTracks}
           token={token}
           initialTime={initialTime}
           onProgress={handleProgress}
+          nextEpisode={nextEpisode}
+          onPlayNext={handlePlayNext}
+          title={fileName}
+          posterUrl={posterUrl}
         />
         {subtitleTracks.length > 0 && (
           <p className="subtitle-hint">
