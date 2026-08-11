@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import Navbar from '../components/Navbar.jsx';
 import MediaCard from '../components/MediaCard.jsx';
+import SkeletonCard from '../components/SkeletonCard.jsx';
 import { getContinueWatching, removeProgress } from '../utils/progress.js';
 import { getFavoriteIds, toggleFavorite } from '../utils/favorites.js';
 
@@ -125,7 +126,20 @@ export default function Library() {
         </div>
 
         {loading ? (
-          <div className="loading">Loading library…</div>
+          <>
+            <section className="library-section">
+              <h2 className="library-section-title">Movies</h2>
+              <div className="media-grid">
+                {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+              </div>
+            </section>
+            <section className="library-section">
+              <h2 className="library-section-title">Series</h2>
+              <div className="media-grid">
+                {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+              </div>
+            </section>
+          </>
         ) : noResults ? (
           <div className="search-empty">
             <p>No results for <strong>"{searchParams.get('q')}"</strong></p>

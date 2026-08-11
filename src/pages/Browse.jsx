@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import Navbar from '../components/Navbar.jsx';
 import FileCard from '../components/FileCard.jsx';
+import SkeletonCard from '../components/SkeletonCard.jsx';
 
 export default function Browse() {
   const [items, setItems] = useState([]);
@@ -92,7 +93,9 @@ export default function Browse() {
         )}
 
         {loading ? (
-          <div className="loading">Loading…</div>
+          <div className="file-grid">
+            {Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} type="file" />)}
+          </div>
         ) : (
           <div className="file-grid">
             {displayItems.length === 0 ? (
