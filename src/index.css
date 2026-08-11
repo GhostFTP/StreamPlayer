@@ -719,6 +719,15 @@ body {
   flex-shrink: 0;
 }
 
+/* "More options" overflow menu: only shown on narrow screens (see Responsive section),
+   where it replaces the individual audio/speed/quality/cast/PiP controls. */
+.more-control { display: none; }
+
+.more-back {
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--subtext);
+}
+
 .cc-btn {
   font-size: 0.7rem;
   font-weight: 700;
@@ -1395,6 +1404,11 @@ body {
   /* Hide volume slider on mobile (use device volume) */
   .volume-slider { display: none; }
 
+  /* Video controls: collapse audio/speed/quality/cast/PiP into one "more" menu
+     so the row of ~10 controls doesn't overflow (video-wrapper clips overflow). */
+  .hide-mobile { display: none !important; }
+  .more-control { display: block; }
+
   /* Genre chips: slightly smaller */
   .genre-chip {
     font-size: 0.75rem;
@@ -1639,4 +1653,3 @@ body {
 
 .admin-delete-btn:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
 .admin-delete-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-}

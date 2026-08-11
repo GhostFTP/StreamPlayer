@@ -42,7 +42,8 @@ export default function VideoPlayer({
   const [offset, setOffset]             = useState(0);       // start point (s) of the transcoded stream, in real time
   const [showNextPrompt, setShowNextPrompt]   = useState(false);
   const [nextCountdown, setNextCountdown]     = useState(8);
-  const [activeMenu, setActiveMenu]     = useState(null); // 'cc' | 'quality' | 'audio' | 'speed' | null
+  const [activeMenu, setActiveMenu]     = useState(null); // 'cc' | 'quality' | 'audio' | 'speed' | 'more' | null
+  const [moreView, setMoreView]         = useState('root'); // 'root' | 'audio' | 'speed' | 'quality', inside the mobile "more" menu
   const [playbackRate, setPlaybackRate] = useState(1);
   const [audioTracks, setAudioTracks]   = useState([]); // [{label}]
   const [activeAudioTrack, setActiveAudioTrack] = useState(0);
@@ -117,6 +118,7 @@ export default function VideoPlayer({
     setOffset(0);
     setShowNextPrompt(false);
     setActiveMenu(null);
+    setMoreView('root');
     setAudioTracks([]);
     setActiveAudioTrack(0);
     nextTriggeredRef.current = false;
@@ -509,7 +511,7 @@ export default function VideoPlayer({
           )}
 
           {audioTracks.length > 1 && (
-            <div className="quality-control">
+            <div className="quality-control hide-mobile">
               <button
                 className={`ctrl-btn cc-btn${activeAudioTrack !== 0 ? ' cc-active' : ''}`}
                 onClick={() => setActiveMenu(m => m === 'audio' ? null : 'audio')}
@@ -533,7 +535,7 @@ export default function VideoPlayer({
             </div>
           )}
 
-          <div className="quality-control">
+          <div className="quality-control hide-mobile">
             <button
               className={`ctrl-btn cc-btn${playbackRate !== 1 ? ' cc-active' : ''}`}
               onClick={() => setActiveMenu(m => m === 'speed' ? null : 'speed')}
@@ -556,7 +558,7 @@ export default function VideoPlayer({
             )}
           </div>
 
-          <div className="quality-control">
+          <div className="quality-control hide-mobile">
             <button
               className={`ctrl-btn cc-btn${quality !== 'auto' ? ' cc-active' : ''}`}
               onClick={() => setActiveMenu(m => m === 'quality' ? null : 'quality')}
@@ -587,7 +589,7 @@ export default function VideoPlayer({
 
           {castKind && (
             <button
-              className={`ctrl-btn cast-btn${casting ? ' cast-active' : ''}`}
+              className={`ctrl-btn cast-btn hide-mobile${casting ? ' cast-active' : ''}`}
               onClick={handleCast}
               title={castKind === 'airplay' ? 'AirPlay' : 'Cast'}
             >
@@ -602,7 +604,7 @@ export default function VideoPlayer({
 
           {pipSupported && (
             <button
-              className={`ctrl-btn pip-btn${pipActive ? ' cast-active' : ''}`}
+              className={`ctrl-btn pip-btn hide-mobile${pipActive ? ' cast-active' : ''}`}
               onClick={togglePip}
               title="Picture-in-Picture"
             >
@@ -612,6 +614,93 @@ export default function VideoPlayer({
               </svg>
             </button>
           )}
+
+          <div className="quality-control more-control">
+            <button
+              className="ctrl-btn more-btn"
+              onClick={() => { setActiveMenu(m => m === 'more' ? null : 'more'); setMoreView('root'); }}
+              title="More options"
+            >
+              ⋮
+            </button>
+            {activeMenu === 'more' && (
+              <div className="sub-menu">
+                {moreView === 'root' && (
+                  <>
+                    {audioTracks.length > 1 && (
+                      <button className="sub-option" onClick={() => setMoreView('audio')}>
+                        Audio: {audioTracks[activeAudioTrack]?.label} ›
+                      </button>
+                    )}
+                    <button className="sub-option" onClick={() => setMoreView('speed')}>
+                      Speed: {playbackRate}x ›
+                    </button>
+                    <button className="sub-option" onClick={() => setMoreView('quality')}>
+                      Quality: {quality === 'auto' ? 'Auto' : `${quality}p`} ›
+                    </button>
+                    {castKind && (
+                      <button className="sub-option" onClick={e => { handleCast(e); setActiveMenu(null); }}>
+                        {castKind === 'airplay' ? 'AirPlay' : 'Cast'}
+                      </button>
+                    )}
+                    {pipSupported && (
+                      <button className="sub-option" onClick={e => { togglePip(e); setActiveMenu(null); }}>
+                        Picture-in-Picture
+                      </button>
+                    )}
+                  </>
+                )}
+                {moreView === 'audio' && (
+                  <>
+                    <button className="sub-option more-back" onClick={() => setMoreView('root')}>‹ Back</button>
+                    {audioTracks.map((t, i) => (
+                      <button
+                        key={i}
+                        className={`sub-option${activeAudioTrack === i ? ' active' : ''}`}
+                        onClick={() => selectAudioTrack(i)}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </>
+                )}
+                {moreView === 'speed' && (
+                  <>
+                    <button className="sub-option more-back" onClick={() => setMoreView('root')}>‹ Back</button>
+                    {SPEED_OPTIONS.map(rate => (
+                      <button
+                        key={rate}
+                        className={`sub-option${playbackRate === rate ? ' active' : ''}`}
+                        onClick={() => selectSpeed(rate)}
+                      >
+                        {rate}x
+                      </button>
+                    ))}
+                  </>
+                )}
+                {moreView === 'quality' && (
+                  <>
+                    <button className="sub-option more-back" onClick={() => setMoreView('root')}>‹ Back</button>
+                    <button
+                      className={`sub-option${quality === 'auto' ? ' active' : ''}`}
+                      onClick={() => selectQuality('auto')}
+                    >
+                      Auto
+                    </button>
+                    {QUALITY_OPTIONS.map(h => (
+                      <button
+                        key={h}
+                        className={`sub-option${quality === h ? ' active' : ''}`}
+                        onClick={() => selectQuality(h)}
+                      >
+                        {h}p
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
 
           <button className="ctrl-btn" onClick={toggleFullscreen}>
             {fullscreen ? '⊡' : '⛶'}
