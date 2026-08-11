@@ -32,6 +32,7 @@ export default function SeriesDetail() {
   }
 
   const posterSrc = buildPosterSrc(series.posterUrl, token);
+  const backdropSrc = buildPosterSrc(series.backdropUrl, token);
 
   function playEpisode(ep, season) {
     navigate('/player', {
@@ -49,7 +50,12 @@ export default function SeriesDetail() {
   return (
     <>
       <Navbar />
-      <div className="series-detail-page">
+      {backdropSrc && (
+        <div className="detail-backdrop" style={{ backgroundImage: `url(${backdropSrc})` }}>
+          <div className="detail-backdrop-fade" />
+        </div>
+      )}
+      <div className={`series-detail-page${backdropSrc ? ' detail-page-overlap' : ''}`}>
         <button className="back-btn" onClick={() => navigate(-1)}>← Back</button>
 
         {/* Hero */}

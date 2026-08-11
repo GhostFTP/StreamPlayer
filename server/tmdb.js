@@ -3,7 +3,8 @@ const fs = require('fs');
 const path = require('path');
 
 const CACHE_FILE = path.join(__dirname, 'poster-cache.json');
-const IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
+const POSTER_BASE = 'https://image.tmdb.org/t/p/w500';
+const BACKDROP_BASE = 'https://image.tmdb.org/t/p/w1280';
 
 let cache = {};
 try { cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8')); } catch {}
@@ -26,11 +27,14 @@ function tmdbGet(path_, apiKey) {
   });
 }
 
-async function getPosterUrl(type, title, year, apiKey) {
-  if (!apiKey) return null;
+async function getTmdbImages(type, title, year, apiKey) {
+  if (!apiKey) return { poster: null, backdrop: null };
 
   const cacheKey = `${type}:${title.toLowerCase().trim()}:${year ?? 'any'}`;
-  if (cacheKey in cache) return cache[cacheKey];
+  const cached = cache[cacheKey];
+  // Older cache entries stored just the poster URL as a string — refetch those once
+  // so they pick up a backdrop too, instead of treating them as permanently backdrop-less.
+  if (cached && typeof cached === 'object') return cached;
 
   try {
     const q = encodeURIComponent(title);
@@ -42,16 +46,19 @@ async function getPosterUrl(type, title, year, apiKey) {
     }
 
     const data = await tmdbGet(endpoint, apiKey);
-    const posterPath = data.results?.[0]?.poster_path ?? null;
-    const url = posterPath ? `${IMAGE_BASE}${posterPath}` : null;
+    const result = data.results?.[0];
+    const images = {
+      poster: result?.poster_path ? `${POSTER_BASE}${result.poster_path}` : null,
+      backdrop: result?.backdrop_path ? `${BACKDROP_BASE}${result.backdrop_path}` : null,
+    };
 
-    cache[cacheKey] = url;
+    cache[cacheKey] = images;
     saveCache();
-    return url;
+    return images;
   } catch (err) {
     console.error(`[TMDB] ${title}: ${err.message}`);
-    return null;
+    return { poster: null, backdrop: null };
   }
 }
 
-module.exports = { getPosterUrl };
+module.exports = { getTmdbImages };

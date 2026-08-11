@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const auth = require('../middleware/auth');
 const { MEDIA_ROOT, TMDB_API_KEY } = require('../config');
-const { getPosterUrl: tmdbPoster } = require('../tmdb');
+const { getTmdbImages } = require('../tmdb');
 
 const router = express.Router();
 
@@ -212,24 +212,22 @@ router.get('/', auth, async (_req, res) => {
     }
   }
 
-  // ── Resolve poster URLs (TMDB fallback) ─────────────────
+  // ── Resolve poster + backdrop URLs (TMDB) ───────────────
   await Promise.all([
     ...movies.map(async m => {
-      if (m._localPoster) {
-        m.posterUrl = `/api/poster?path=${encodeURIComponent(m._localPoster)}`;
-      } else {
-        const tmdb = await tmdbPoster('movie', m.title, m.year, TMDB_API_KEY);
-        m.posterUrl = tmdb ?? (m._videoPath ? `/api/thumbnail?path=${encodeURIComponent(m._videoPath)}` : null);
-      }
+      const images = await getTmdbImages('movie', m.title, m.year, TMDB_API_KEY);
+      m.posterUrl = m._localPoster
+        ? `/api/poster?path=${encodeURIComponent(m._localPoster)}`
+        : images.poster ?? (m._videoPath ? `/api/thumbnail?path=${encodeURIComponent(m._videoPath)}` : null);
+      m.backdropUrl = images.backdrop;
       delete m._localPoster; delete m._videoPath;
     }),
     ...series.map(async s => {
-      if (s._localPoster) {
-        s.posterUrl = `/api/poster?path=${encodeURIComponent(s._localPoster)}`;
-      } else {
-        const tmdb = await tmdbPoster('tv', s.title, s.year, TMDB_API_KEY);
-        s.posterUrl = tmdb ?? (s._videoPath ? `/api/thumbnail?path=${encodeURIComponent(s._videoPath)}` : null);
-      }
+      const images = await getTmdbImages('tv', s.title, s.year, TMDB_API_KEY);
+      s.posterUrl = s._localPoster
+        ? `/api/poster?path=${encodeURIComponent(s._localPoster)}`
+        : images.poster ?? (s._videoPath ? `/api/thumbnail?path=${encodeURIComponent(s._videoPath)}` : null);
+      s.backdropUrl = images.backdrop;
       delete s._localPoster; delete s._videoPath;
     }),
   ]);

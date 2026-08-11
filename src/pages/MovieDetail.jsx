@@ -23,6 +23,7 @@ export default function MovieDetail() {
   }
 
   const posterSrc = buildPosterSrc(movie.posterUrl, token);
+  const backdropSrc = buildPosterSrc(movie.backdropUrl, token);
 
   function play() {
     navigate('/player', { state: { filePath: movie.videoPath, fileName: movie.title, posterUrl: movie.posterUrl } });
@@ -31,7 +32,12 @@ export default function MovieDetail() {
   return (
     <>
       <Navbar />
-      <div className="series-detail-page">
+      {backdropSrc && (
+        <div className="detail-backdrop" style={{ backgroundImage: `url(${backdropSrc})` }}>
+          <div className="detail-backdrop-fade" />
+        </div>
+      )}
+      <div className={`series-detail-page${backdropSrc ? ' detail-page-overlap' : ''}`}>
         <button className="back-btn" onClick={() => navigate(-1)}>← Back</button>
 
         <div className="series-hero">
