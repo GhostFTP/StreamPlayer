@@ -1,7 +1,15 @@
-export const APP_VERSION = '1.4.0';
+export const APP_VERSION = '1.5.0';
 
 // Most recent first.
 export const CHANGELOG = [
+  {
+    version: '1.5.0',
+    date: '2026-08-10',
+    changes: [
+      'La app ahora se puede instalar como PWA: ícono propio, pantalla completa y funciona offline para la interfaz (el streaming en sí sigue necesitando conexión).',
+      'Reproductor adaptado a celular: Audio/Velocidad/Calidad/Cast/PiP se agrupan en un menú "⋮" en pantallas chicas para que los controles no desborden.',
+    ],
+  },
   {
     version: '1.4.0',
     date: '2026-08-10',

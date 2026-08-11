@@ -2,6 +2,17 @@
 
 Todas las versiones notables de StreamPlayer se documentan en este archivo.
 
+## [1.5.0] - 2026-08-10
+
+### Added
+- Soporte de PWA (manifest, íconos, favicon, service worker): instalable con ícono propio y
+  pantalla completa; la interfaz sigue funcionando offline (el streaming en sí no).
+- Menú "⋮ Más opciones" en el reproductor para pantallas ≤600px, que agrupa Audio, Velocidad,
+  Calidad, Cast y Picture-in-Picture para que la fila de controles no desborde en celular.
+
+### Fixed
+- Llave `}` de más al final de `index.css` (arrastrada desde el commit inicial).
+
 ## [1.4.0] - 2026-08-10
 
 ### Added
