@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import BurgerMenu from './BurgerMenu.jsx';
 
 const SEARCH_ROUTES = ['/'];
@@ -8,6 +8,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const showSearch = SEARCH_ROUTES.includes(location.pathname);
   const searchValue = searchParams.get('q') || '';
@@ -33,7 +34,7 @@ export default function Navbar() {
           >
             <span /><span /><span />
           </button>
-          <span className="navbar-brand">▶ Nyx</span>
+          <button className="navbar-brand" onClick={() => navigate('/')}>▶ Nyx</button>
         </div>
 
         {showSearch && (

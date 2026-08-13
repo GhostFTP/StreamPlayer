@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import nyxLogo from '../assets/nyx-logo-lockup.svg';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -28,12 +29,8 @@ export default function Login() {
     <div className="login-container">
       <form className="login-form" onSubmit={handleSubmit}>
         <div className="login-logo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <circle cx="12" cy="12" r="10" />
-            <polygon points="10,8 16,12 10,16" fill="currentColor" stroke="none" />
-          </svg>
+          <img src={nyxLogo} alt="Nyx" />
         </div>
-        <h1 className="login-title">Nyx</h1>
         <p className="login-subtitle">Sign in to access your media</p>
 
         {error && <p className="error-msg">{error}</p>}
