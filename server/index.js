@@ -14,6 +14,16 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: config.CLIENT_ORIGIN }));
 app.use(express.json());
 
+// TEMP: request timing log for diagnosing slow-first-playback reports. Remove once resolved.
+app.use((req, res, next) => {
+  const start = Date.now();
+  console.log(`[req] ${req.method} ${req.originalUrl} range=${req.headers.range || '-'}`);
+  res.on('finish', () => {
+    console.log(`[res] ${req.method} ${req.originalUrl} status=${res.statusCode} ${Date.now() - start}ms`);
+  });
+  next();
+});
+
 app.use('/api/auth',       require('./routes/auth'));
 app.use('/api/files',      require('./routes/files'));
 app.use('/api/stream',     require('./routes/stream'));
