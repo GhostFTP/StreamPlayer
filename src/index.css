@@ -223,7 +223,7 @@ body {
 }
 
 .navbar-brand img {
-  height: 28px;
+  height: 38px;
   width: auto;
   display: block;
 }
@@ -1439,7 +1439,7 @@ body {
     gap: 0.5rem;
   }
 
-  .navbar-brand img { height: 24px; }
+  .navbar-brand img { height: 32px; }
 
   /* Page containers */
   .library-page,
