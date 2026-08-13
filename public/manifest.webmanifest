@@ -1,6 +1,6 @@
 {
-  "name": "Stream Player",
-  "short_name": "Stream Player",
+  "name": "Nyx",
+  "short_name": "Nyx",
   "description": "Plataforma de streaming personal auto-hosteada",
   "start_url": "/",
   "scope": "/",

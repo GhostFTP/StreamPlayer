@@ -33,7 +33,7 @@ export default function Navbar() {
           >
             <span /><span /><span />
           </button>
-          <span className="navbar-brand">▶ Stream Player</span>
+          <span className="navbar-brand">▶ Nyx</span>
         </div>
 
         {showSearch && (

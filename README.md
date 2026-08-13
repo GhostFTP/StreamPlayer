@@ -1,4 +1,4 @@
-# StreamPlayer
+# Nyx
 
 A self-hosted personal streaming platform built with React + Vite (frontend) and Node.js + Express (backend). Designed to run on your own server and stream your local media library from any device.
 

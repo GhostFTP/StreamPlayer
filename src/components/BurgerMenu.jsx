@@ -54,7 +54,7 @@ export default function BurgerMenu({ isOpen, onClose }) {
 
       <aside className={`burger-panel${isOpen ? ' open' : ''}`} aria-label="Navigation menu">
         <div className="burger-header">
-          <span className="burger-brand">▶ Stream Player</span>
+          <span className="burger-brand">▶ Nyx</span>
           <button className="burger-close" onClick={onClose} aria-label="Close menu">✕</button>
         </div>
 

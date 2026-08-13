@@ -1,6 +1,6 @@
 # Changelog
 
-Todas las versiones notables de StreamPlayer se documentan en este archivo.
+Todas las versiones notables de Nyx se documentan en este archivo.
 
 ## [1.5.0] - 2026-08-10
 

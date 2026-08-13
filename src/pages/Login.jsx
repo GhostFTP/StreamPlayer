@@ -33,7 +33,7 @@ export default function Login() {
             <polygon points="10,8 16,12 10,16" fill="currentColor" stroke="none" />
           </svg>
         </div>
-        <h1 className="login-title">Stream Player</h1>
+        <h1 className="login-title">Nyx</h1>
         <p className="login-subtitle">Sign in to access your media</p>
 
         {error && <p className="error-msg">{error}</p>}

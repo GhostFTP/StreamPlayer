@@ -223,8 +223,8 @@ export default function VideoPlayer({
   useEffect(() => {
     if (!('mediaSession' in navigator)) return;
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: title || 'Stream Player',
-      artist: 'Stream Player',
+      title: title || 'Nyx',
+      artist: 'Nyx',
       artwork: posterUrl ? [{ src: buildPosterSrc(posterUrl, token), sizes: '512x512', type: 'image/jpeg' }] : [],
     });
   }, [title, posterUrl, token]);

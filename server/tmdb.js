@@ -16,7 +16,7 @@ function saveCache() {
 function tmdbGet(path_, apiKey) {
   return new Promise((resolve, reject) => {
     const url = `https://api.themoviedb.org/3${path_}&api_key=${apiKey}`;
-    https.get(url, { headers: { 'User-Agent': 'StreamPlayer/1.0' } }, res => {
+    https.get(url, { headers: { 'User-Agent': 'Nyx/1.0' } }, res => {
       let raw = '';
       res.on('data', c => { raw += c; });
       res.on('end', () => {
