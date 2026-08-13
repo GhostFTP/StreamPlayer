@@ -14,7 +14,7 @@ function formatTime(s) {
 }
 
 export default function VideoPlayer({
-  src, filePath = '', subtitleTracks = [], token = '', initialTime = 0, onProgress,
+  src, filePath = '', subtitleTracks = [], audioTracksInfo = [], token = '', initialTime = 0, onProgress,
   nextEpisode = null, onPlayNext, title = '', posterUrl = null,
 }) {
   const videoRef        = useRef(null);
@@ -27,6 +27,7 @@ export default function VideoPlayer({
   const pendingSeekRef  = useRef(null); // currentTime to apply once the next src finishes loading
   const wasPlayingRef   = useRef(true); // whether the video should auto-play once loaded (true on first mount)
   const nextTriggeredRef = useRef(false); // whether the next-episode prompt already fired for this video
+  const autoSubAppliedRef = useRef(false); // whether we've already decided on auto-subtitles for this video
 
   const [playing, setPlaying]           = useState(false);
   const [currentTime, setCurrentTime]   = useState(0);
@@ -97,6 +98,25 @@ export default function VideoPlayer({
     };
   }, []);
 
+  // Auto-enable a Spanish subtitle track when the file's default audio isn't Spanish
+  useEffect(() => {
+    if (autoSubAppliedRef.current) return;
+    if (!audioTracksInfo.length || !subtitleTracks.length) return;
+
+    autoSubAppliedRef.current = true;
+    const defaultAudio = audioTracksInfo.find(t => t.default) || audioTracksInfo[0];
+    const audioLang = (defaultAudio?.lang || '').toLowerCase();
+    const isSpanish = audioLang.startsWith('es') || audioLang.startsWith('spa');
+    const isEnglish = audioLang.startsWith('en') || audioLang.startsWith('eng');
+    if (isSpanish || isEnglish) return;
+
+    const subIndex = subtitleTracks.findIndex(t => {
+      const lang = (t.lang || '').toLowerCase();
+      return lang.startsWith('es') || lang.startsWith('spa');
+    });
+    if (subIndex !== -1) setActiveTrack(subIndex);
+  }, [audioTracksInfo, subtitleTracks]);
+
   // Sync active subtitle track with video.textTracks
   useEffect(() => {
     const v = videoRef.current;
@@ -122,6 +142,7 @@ export default function VideoPlayer({
     setAudioTracks([]);
     setActiveAudioTrack(0);
     nextTriggeredRef.current = false;
+    autoSubAppliedRef.current = false;
     knownDurationRef.current = 0;
     ctRef.current = 0;
     lastSavedRef.current = 0;

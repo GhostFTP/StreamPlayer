@@ -80,6 +80,27 @@ function getEmbeddedTracks(videoPath, relVideoPath) {
   }
 }
 
+// Read the language of each embedded audio stream via ffprobe
+function getAudioLanguages(videoPath) {
+  try {
+    const out = execFileSync('ffprobe', [
+      '-v', 'quiet',
+      '-print_format', 'json',
+      '-show_streams',
+      '-select_streams', 'a',
+      videoPath,
+    ], { timeout: 8000 }).toString();
+
+    const streams = JSON.parse(out).streams || [];
+    return streams.map(s => ({
+      lang: s.tags?.language || 'und',
+      default: s.disposition?.default === 1,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 // GET /api/subtitles?path=<video-path>
 // Returns sidecar files + embedded streams
 router.get('/', auth, (req, res) => {
@@ -108,12 +129,14 @@ router.get('/', auth, (req, res) => {
     } catch {}
 
     // ── Embedded streams (MKV / MP4 / etc.) ─────────
+    let audio = [];
     if (isVideo(filePath)) {
       const embedded = getEmbeddedTracks(filePath, relFilePath);
       tracks.push(...embedded);
+      audio = getAudioLanguages(filePath);
     }
 
-    res.json({ tracks });
+    res.json({ tracks, audio });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }

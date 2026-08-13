@@ -11,6 +11,7 @@ export default function Player() {
   const { token, username } = useAuth();
   const { filePath, fileName, posterUrl, series, seasonNumber, episodeNumber } = location.state || {};
   const [subtitleTracks, setSubtitleTracks] = useState([]);
+  const [audioTracksInfo, setAudioTracksInfo] = useState([]);
 
   const initialTime = filePath ? getInitialTime(username, filePath) : 0;
 
@@ -60,7 +61,10 @@ export default function Player() {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
-      .then(d => setSubtitleTracks(d.tracks ?? []))
+      .then(d => {
+        setSubtitleTracks(d.tracks ?? []);
+        setAudioTracksInfo(d.audio ?? []);
+      })
       .catch(() => {});
   }, [filePath, token, navigate]);
 
@@ -78,6 +82,7 @@ export default function Player() {
           src={streamUrl}
           filePath={filePath}
           subtitleTracks={subtitleTracks}
+          audioTracksInfo={audioTracksInfo}
           token={token}
           initialTime={initialTime}
           onProgress={handleProgress}
