@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import BurgerMenu from './BurgerMenu.jsx';
+import nyxNavLogo from '../assets/nyx-navbar-logo.svg';
 
 const SEARCH_ROUTES = ['/'];
 
@@ -34,7 +35,9 @@ export default function Navbar() {
           >
             <span /><span /><span />
           </button>
-          <button className="navbar-brand" onClick={() => navigate('/')}>▶ Nyx</button>
+          <button className="navbar-brand" onClick={() => navigate('/')} aria-label="Go to home">
+            <img src={nyxNavLogo} alt="Nyx" />
+          </button>
         </div>
 
         {showSearch && (

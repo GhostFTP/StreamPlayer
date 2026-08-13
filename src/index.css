@@ -214,16 +214,18 @@ body {
 }
 
 .navbar-brand {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: -0.02em;
-  white-space: nowrap;
+  display: flex;
+  align-items: center;
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
-  font-family: inherit;
+}
+
+.navbar-brand img {
+  height: 28px;
+  width: auto;
+  display: block;
 }
 
 .navbar-right-placeholder { flex-shrink: 0; width: 1px; }
@@ -1437,7 +1439,7 @@ body {
     gap: 0.5rem;
   }
 
-  .navbar-brand { font-size: 0.88rem; }
+  .navbar-brand img { height: 24px; }
 
   /* Page containers */
   .library-page,
