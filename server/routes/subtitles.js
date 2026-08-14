@@ -101,6 +101,25 @@ function getAudioLanguages(videoPath) {
   }
 }
 
+// Read the real container duration via ffprobe — independent of which
+// quality/stream the client ends up playing (transcoded streams report an
+// unreliable duration since they're fragmented mp4 with no upfront moov).
+function getDuration(videoPath) {
+  try {
+    const out = execFileSync('ffprobe', [
+      '-v', 'quiet',
+      '-print_format', 'json',
+      '-show_entries', 'format=duration',
+      videoPath,
+    ], { timeout: 8000 }).toString();
+
+    const duration = parseFloat(JSON.parse(out).format?.duration);
+    return isFinite(duration) && duration > 0 ? duration : null;
+  } catch {
+    return null;
+  }
+}
+
 // GET /api/subtitles?path=<video-path>
 // Returns sidecar files + embedded streams
 router.get('/', auth, (req, res) => {
@@ -130,13 +149,15 @@ router.get('/', auth, (req, res) => {
 
     // ── Embedded streams (MKV / MP4 / etc.) ─────────
     let audio = [];
+    let duration = null;
     if (isVideo(filePath)) {
       const embedded = getEmbeddedTracks(filePath, relFilePath);
       tracks.push(...embedded);
       audio = getAudioLanguages(filePath);
+      duration = getDuration(filePath);
     }
 
-    res.json({ tracks, audio });
+    res.json({ tracks, audio, duration });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }

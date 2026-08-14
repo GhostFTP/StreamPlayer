@@ -14,7 +14,7 @@ function formatTime(s) {
 }
 
 export default function VideoPlayer({
-  src, filePath = '', subtitleTracks = [], audioTracksInfo = [], token = '', initialTime = 0, onProgress,
+  src, filePath = '', subtitleTracks = [], audioTracksInfo = [], knownDuration = null, token = '', initialTime = 0, onProgress,
   nextEpisode = null, onPlayNext, title = '', posterUrl = null,
 }) {
   const videoRef        = useRef(null);
@@ -97,6 +97,18 @@ export default function VideoPlayer({
       v.removeEventListener('leavepictureinpicture', onLeave);
     };
   }, []);
+
+  // Seed/correct the known duration from ffprobe metadata (server-side, quality-independent).
+  // Transcoded (non-"auto") streams are fragmented mp4 and report an unreliable video.duration,
+  // so this is the only trustworthy source when the original-quality stream never loaded.
+  useEffect(() => {
+    if (!knownDuration || knownDuration <= 0) return;
+    knownDurationRef.current = knownDuration;
+    if (quality !== 'auto') {
+      durRef.current = knownDuration;
+      setDuration(knownDuration);
+    }
+  }, [knownDuration, quality]);
 
   // Auto-enable a Spanish subtitle track when the file's default audio isn't Spanish
   useEffect(() => {

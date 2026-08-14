@@ -12,6 +12,7 @@ export default function Player() {
   const { filePath, fileName, posterUrl, series, seasonNumber, episodeNumber } = location.state || {};
   const [subtitleTracks, setSubtitleTracks] = useState([]);
   const [audioTracksInfo, setAudioTracksInfo] = useState([]);
+  const [knownDuration, setKnownDuration] = useState(null);
 
   const initialTime = filePath ? getInitialTime(username, filePath) : 0;
 
@@ -64,6 +65,7 @@ export default function Player() {
       .then(d => {
         setSubtitleTracks(d.tracks ?? []);
         setAudioTracksInfo(d.audio ?? []);
+        setKnownDuration(d.duration ?? null);
       })
       .catch(() => {});
   }, [filePath, token, navigate]);
@@ -83,6 +85,7 @@ export default function Player() {
           filePath={filePath}
           subtitleTracks={subtitleTracks}
           audioTracksInfo={audioTracksInfo}
+          knownDuration={knownDuration}
           token={token}
           initialTime={initialTime}
           onProgress={handleProgress}
