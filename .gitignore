@@ -8,3 +8,5 @@ media/
 .claude/
 .directory
 server/poster-cache.json
+server/users.json
+/data/

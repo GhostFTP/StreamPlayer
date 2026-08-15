@@ -1,0 +1,14 @@
+services:
+  nyx:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    environment:
+      - MEDIA_ROOT=/media
+    volumes:
+      - ${MEDIA_PATH:-./media}:/media
+      - ./data/users.json:/app/server/users.json
+      - ./data/poster-cache.json:/app/server/poster-cache.json

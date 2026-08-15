@@ -1,0 +1,13 @@
+node_modules
+server/node_modules
+dist
+media
+server/media
+.git
+.env
+server/.env
+server/users.json
+server/poster-cache.json
+*.log
+.claude
+screenshots
