@@ -10,5 +10,5 @@ services:
       - MEDIA_ROOT=/media
     volumes:
       - ${MEDIA_PATH:-./media}:/media
-      - ./data/users.json:/app/server/users.json
-      - ./data/poster-cache.json:/app/server/poster-cache.json
+      - ${DATA_PATH:-./data}/users.json:/app/server/users.json
+      - ${DATA_PATH:-./data}/poster-cache.json:/app/server/poster-cache.json
