@@ -10,7 +10,7 @@ const router = express.Router();
 const VIDEO_EXTS = new Set(['.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v', '.flv', '.wmv']);
 const SUB_EXTS   = new Set(['.srt', '.vtt', '.ass', '.ssa']);
 const POSTER_NAMES = ['poster.jpg', 'poster.jpeg', 'poster.png', 'poster.webp', 'cover.jpg', 'cover.png'];
-const EPISODE_RE = /[Ss](\d{1,2})[Ee](\d{1,2})/;
+const EPISODE_RE = /[Ss](\d{1,2})[\s._-]*(?:Ep(?:isode)?|E)[\s._-]*(\d{1,3})/i;
 
 const isVideo = n => VIDEO_EXTS.has(path.extname(n).toLowerCase());
 const isSub   = n => SUB_EXTS.has(path.extname(n).toLowerCase());
@@ -81,9 +81,8 @@ function parseEpisode(name) {
   // Title extraction: part after S##E##, stripped of release tags and separators
   const rawAfter = name.slice(name.indexOf(m[0]) + m[0].length);
   const cleaned  = rawAfter
-    .replace(RELEASE_TAGS_RE, '')   // strip quality tags and everything after
     .replace(/[._]/g, ' ')          // dots/underscores → spaces
-    .replace(/\.[^.]+$/, '')        // remove extension if still present
+    .replace(RELEASE_TAGS_RE, '')   // strip quality tags and everything after
     .trim();
 
   const title = cleaned.length > 1 ? cleaned : `Episode ${episode}`;
@@ -95,7 +94,7 @@ function scanSeriesFolder(dir) {
   let detectedYear = null;
 
   function addFile(filePath) {
-    const name = path.basename(filePath);
+    const name = path.basename(filePath, path.extname(filePath));
     const ep = parseEpisode(name);
     if (!ep) return;
     const fileDir = path.dirname(filePath);
