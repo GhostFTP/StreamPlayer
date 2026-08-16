@@ -34,16 +34,21 @@ router.get('/', streamAuth, (req, res) => {
 
   const start = Math.max(0, parseFloat(req.query.start) || 0);
 
-  const ffmpeg = spawn('ffmpeg', [
-    '-ss', String(start),
-    '-i', filePath,
+  const audioIndex = parseInt(req.query.audio, 10);
+  const args = ['-ss', String(start), '-i', filePath];
+  if (Number.isInteger(audioIndex) && audioIndex >= 0) {
+    args.push('-map', '0:v:0', '-map', `0:a:${audioIndex}`);
+  }
+  args.push(
     '-vf', `scale=-2:${height}`,
     '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23',
     '-c:a', 'aac', '-b:a', '128k',
     '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
     '-f', 'mp4',
     'pipe:1',
-  ]);
+  );
+
+  const ffmpeg = spawn('ffmpeg', args);
 
   res.setHeader('Content-Type', 'video/mp4');
   ffmpeg.stdout.pipe(res);

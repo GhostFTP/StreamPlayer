@@ -46,15 +46,26 @@ export default function VideoPlayer({
   const [activeMenu, setActiveMenu]     = useState(null); // 'cc' | 'quality' | 'audio' | 'speed' | 'more' | null
   const [moreView, setMoreView]         = useState('root'); // 'root' | 'audio' | 'speed' | 'quality', inside the mobile "more" menu
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [audioTracks, setAudioTracks]   = useState([]); // [{label}]
+  const [audioTracks, setAudioTracks]   = useState([]); // [{label}] — native tracks, only populated in Auto mode
   const [activeAudioTrack, setActiveAudioTrack] = useState(0);
+  const [audioTrackIndex, setAudioTrackIndex] = useState(0); // source audio stream index, used to transcode with the right track
   const [pipActive, setPipActive]       = useState(false);
 
   const pipSupported = typeof document !== 'undefined' && document.pictureInPictureEnabled;
 
+  // Transcoding always needs an explicit track: with no `-map`, ffmpeg emits a
+  // single auto-picked audio stream, so language switching only works if we
+  // tell it which source stream to use.
   const effectiveSrc = quality === 'auto'
     ? src
-    : `/api/transcode?path=${encodeURIComponent(filePath)}&height=${quality}&start=${offset}&token=${encodeURIComponent(token)}`;
+    : `/api/transcode?path=${encodeURIComponent(filePath)}&height=${quality}&start=${offset}&audio=${audioTrackIndex}&token=${encodeURIComponent(token)}`;
+
+  // In Auto mode the browser exposes real, natively-switchable tracks (when it
+  // can decode them). In transcoded mode only one track ever comes through, so
+  // the switcher is driven by the ffprobe-reported track list instead.
+  const audioSelectorTracks = quality === 'auto'
+    ? audioTracks
+    : audioTracksInfo.map(t => ({ label: t.label || t.lang }));
 
   // Detect Chromecast (Remote Playback API) or AirPlay support once on mount
   useEffect(() => {
@@ -129,6 +140,16 @@ export default function VideoPlayer({
     if (subIndex !== -1) setActiveTrack(subIndex);
   }, [audioTracksInfo, subtitleTracks]);
 
+  // Seed the transcode audio index from ffprobe's default-flagged track,
+  // matching what ffmpeg would auto-pick if we passed no -map at all.
+  useEffect(() => {
+    if (!audioTracksInfo.length) return;
+    const defaultIdx = audioTracksInfo.findIndex(t => t.default);
+    const idx = defaultIdx === -1 ? 0 : defaultIdx;
+    setAudioTrackIndex(idx);
+    setActiveAudioTrack(idx);
+  }, [audioTracksInfo]);
+
   // Sync active subtitle track with video.textTracks
   useEffect(() => {
     const v = videoRef.current;
@@ -153,6 +174,7 @@ export default function VideoPlayer({
     setMoreView('root');
     setAudioTracks([]);
     setActiveAudioTrack(0);
+    setAudioTrackIndex(0);
     nextTriggeredRef.current = false;
     autoSubAppliedRef.current = false;
     knownDurationRef.current = 0;
@@ -375,8 +397,16 @@ export default function VideoPlayer({
 
   function selectAudioTrack(index) {
     const v = videoRef.current;
-    if (v?.audioTracks) {
-      Array.from(v.audioTracks).forEach((t, i) => { t.enabled = i === index; });
+    if (quality === 'auto') {
+      if (v?.audioTracks) {
+        Array.from(v.audioTracks).forEach((t, i) => { t.enabled = i === index; });
+      }
+    } else {
+      // No live track switching on the transcoded pipe: restart the encode
+      // from the current position with the newly-selected source audio stream.
+      wasPlayingRef.current = !v.paused;
+      setOffset(offset + v.currentTime);
+      setAudioTrackIndex(index);
     }
     setActiveAudioTrack(index);
     setActiveMenu(null);
@@ -543,7 +573,7 @@ export default function VideoPlayer({
             </div>
           )}
 
-          {audioTracks.length > 1 && (
+          {audioSelectorTracks.length > 1 && (
             <div className="quality-control hide-mobile">
               <button
                 className={`ctrl-btn cc-btn${activeAudioTrack !== 0 ? ' cc-active' : ''}`}
@@ -554,7 +584,7 @@ export default function VideoPlayer({
               </button>
               {activeMenu === 'audio' && (
                 <div className="sub-menu">
-                  {audioTracks.map((t, i) => (
+                  {audioSelectorTracks.map((t, i) => (
                     <button
                       key={i}
                       className={`sub-option${activeAudioTrack === i ? ' active' : ''}`}
@@ -660,9 +690,9 @@ export default function VideoPlayer({
               <div className="sub-menu">
                 {moreView === 'root' && (
                   <>
-                    {audioTracks.length > 1 && (
+                    {audioSelectorTracks.length > 1 && (
                       <button className="sub-option" onClick={() => setMoreView('audio')}>
-                        Audio: {audioTracks[activeAudioTrack]?.label} ›
+                        Audio: {audioSelectorTracks[activeAudioTrack]?.label} ›
                       </button>
                     )}
                     <button className="sub-option" onClick={() => setMoreView('speed')}>
@@ -686,7 +716,7 @@ export default function VideoPlayer({
                 {moreView === 'audio' && (
                   <>
                     <button className="sub-option more-back" onClick={() => setMoreView('root')}>‹ Back</button>
-                    {audioTracks.map((t, i) => (
+                    {audioSelectorTracks.map((t, i) => (
                       <button
                         key={i}
                         className={`sub-option${activeAudioTrack === i ? ' active' : ''}`}
