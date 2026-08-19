@@ -208,6 +208,13 @@ export default function VideoPlayer({
   const latestRef = useRef({});
   latestRef.current = { quality, offset, duration, currentTime, volume, muted };
 
+  // Hide any currently-shown cue immediately: the video element is reused
+  // across a src reload, so its TextTrack objects (and stale cues) persist
+  // until the new stream loads, otherwise old and new subtitles overlap.
+  function hideSubtitleCues() {
+    Array.from(videoRef.current?.textTracks ?? []).forEach(t => { t.mode = 'hidden'; });
+  }
+
   function seekTo(target) {
     const { quality, offset, duration } = latestRef.current;
     const clamped = Math.max(0, Math.min(duration || Infinity, target));
@@ -217,6 +224,7 @@ export default function VideoPlayer({
       // No byte-range support on the transcoded pipe: "seek" by restarting
       // the ffmpeg encode from the new timestamp.
       wasPlayingRef.current = !videoRef.current.paused;
+      hideSubtitleCues();
       setOffset(clamped);
     }
   }
@@ -370,6 +378,7 @@ export default function VideoPlayer({
     const v = videoRef.current;
     const realTime = quality === 'auto' ? v.currentTime : offset + v.currentTime;
     wasPlayingRef.current = !v.paused;
+    hideSubtitleCues();
     if (q === 'auto') {
       pendingSeekRef.current = realTime;
       setOffset(0);
@@ -405,6 +414,7 @@ export default function VideoPlayer({
       // No live track switching on the transcoded pipe: restart the encode
       // from the current position with the newly-selected source audio stream.
       wasPlayingRef.current = !v.paused;
+      hideSubtitleCues();
       setOffset(offset + v.currentTime);
       setAudioTrackIndex(index);
     }
