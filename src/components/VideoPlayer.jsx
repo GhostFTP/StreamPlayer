@@ -53,17 +53,27 @@ export default function VideoPlayer({
 
   const pipSupported = typeof document !== 'undefined' && document.pictureInPictureEnabled;
 
-  // Transcoding always needs an explicit track: with no `-map`, ffmpeg emits a
-  // single auto-picked audio stream, so language switching only works if we
-  // tell it which source stream to use.
-  const effectiveSrc = quality === 'auto'
-    ? src
-    : `/api/transcode?path=${encodeURIComponent(filePath)}&height=${quality}&start=${offset}&audio=${audioTrackIndex}&token=${encodeURIComponent(token)}`;
+  // Codecs browsers can decode natively. Anything else (ac3, eac3, dts,
+  // truehd, ...) plays back silently over a raw passthrough <video src>.
+  const BROWSER_SAFE_AUDIO_CODECS = new Set(['aac', 'mp3', 'opus', 'vorbis']);
+  const activeAudioInfo = audioTracksInfo[audioTrackIndex] || audioTracksInfo.find(t => t.default) || audioTracksInfo[0];
+  const audioNeedsFix = !!activeAudioInfo?.codec && !BROWSER_SAFE_AUDIO_CODECS.has(activeAudioInfo.codec.toLowerCase());
 
-  // In Auto mode the browser exposes real, natively-switchable tracks (when it
-  // can decode them). In transcoded mode only one track ever comes through, so
-  // the switcher is driven by the ffprobe-reported track list instead.
-  const audioSelectorTracks = quality === 'auto'
+  // Whether playback goes through the transcode pipe (no byte-range support,
+  // seeking restarts the encode) rather than a raw byte-range <video src>.
+  // True for any explicit quality, and also for Auto when the source audio
+  // codec isn't browser-safe — Auto keeps the "Auto" label and full quality,
+  // it just quietly copies the video stream and only re-encodes the audio.
+  const pipeMode = quality !== 'auto' || audioNeedsFix;
+
+  const effectiveSrc = pipeMode
+    ? `/api/transcode?path=${encodeURIComponent(filePath)}&height=${quality === 'auto' ? 'source' : quality}&start=${offset}&audio=${audioTrackIndex}&token=${encodeURIComponent(token)}`
+    : src;
+
+  // Outside the pipe, the browser exposes real, natively-switchable tracks
+  // (when it can decode them). Inside the pipe only one track ever comes
+  // through, so the switcher is driven by the ffprobe-reported list instead.
+  const audioSelectorTracks = !pipeMode
     ? audioTracks
     : audioTracksInfo.map(t => ({ label: t.label || t.lang }));
 
@@ -115,11 +125,11 @@ export default function VideoPlayer({
   useEffect(() => {
     if (!knownDuration || knownDuration <= 0) return;
     knownDurationRef.current = knownDuration;
-    if (quality !== 'auto') {
+    if (pipeMode) {
       durRef.current = knownDuration;
       setDuration(knownDuration);
     }
-  }, [knownDuration, quality]);
+  }, [knownDuration, pipeMode]);
 
   // Auto-enable a Spanish subtitle track when the file's default audio isn't Spanish
   useEffect(() => {
@@ -206,7 +216,7 @@ export default function VideoPlayer({
 
   // Mirror of the latest render's values, for handlers registered once (keyboard, Media Session)
   const latestRef = useRef({});
-  latestRef.current = { quality, offset, duration, currentTime, volume, muted };
+  latestRef.current = { quality, offset, duration, currentTime, volume, muted, pipeMode };
 
   // Hide any currently-shown cue immediately: the video element is reused
   // across a src reload, so its TextTrack objects (and stale cues) persist
@@ -216,9 +226,9 @@ export default function VideoPlayer({
   }
 
   function seekTo(target) {
-    const { quality, offset, duration } = latestRef.current;
+    const { offset, duration, pipeMode } = latestRef.current;
     const clamped = Math.max(0, Math.min(duration || Infinity, target));
-    if (quality === 'auto') {
+    if (!pipeMode) {
       videoRef.current.currentTime = clamped;
     } else {
       // No byte-range support on the transcoded pipe: "seek" by restarting
@@ -376,10 +386,14 @@ export default function VideoPlayer({
 
   function selectQuality(q) {
     const v = videoRef.current;
-    const realTime = quality === 'auto' ? v.currentTime : offset + v.currentTime;
+    const realTime = pipeMode ? offset + v.currentTime : v.currentTime;
     wasPlayingRef.current = !v.paused;
     hideSubtitleCues();
-    if (q === 'auto') {
+    // Picking "Auto" only means true raw passthrough if the audio doesn't
+    // still need fixing — otherwise it stays on the pipe, just switching
+    // which endpoint feeds it, so the position must carry over via offset
+    // rather than resetting to 0.
+    if (q === 'auto' && !audioNeedsFix) {
       pendingSeekRef.current = realTime;
       setOffset(0);
     } else {
@@ -406,7 +420,7 @@ export default function VideoPlayer({
 
   function selectAudioTrack(index) {
     const v = videoRef.current;
-    if (quality === 'auto') {
+    if (!pipeMode) {
       if (v?.audioTracks) {
         Array.from(v.audioTracks).forEach((t, i) => { t.enabled = i === index; });
       }
@@ -433,7 +447,7 @@ export default function VideoPlayer({
     let url = `/api/subtitles/file?path=${encodeURIComponent(track.path)}&token=${encodeURIComponent(token)}`;
     if (track.type === 'embedded') url += `&stream=${track.streamIndex}`;
     // The transcoded pipe restarts its clock at `offset`, so re-base cues to match.
-    if (quality !== 'auto') url += `&start=${offset}`;
+    if (pipeMode) url += `&start=${offset}`;
     return url;
   };
 
@@ -469,7 +483,7 @@ export default function VideoPlayer({
         }}
         onTimeUpdate={() => {
           const ct = videoRef.current.currentTime;
-          const realTime = quality === 'auto' ? ct : offset + ct;
+          const realTime = pipeMode ? offset + ct : ct;
           ctRef.current = realTime;
           setCurrentTime(realTime);
           // throttle: report every 10s while playing
@@ -496,7 +510,7 @@ export default function VideoPlayer({
         }}
         onLoadedMetadata={() => {
           const rawDur = videoRef.current.duration;
-          if (quality === 'auto' && isFinite(rawDur) && rawDur > 0) {
+          if (!pipeMode && isFinite(rawDur) && rawDur > 0) {
             knownDurationRef.current = rawDur;
             durRef.current = rawDur;
           } else {
@@ -504,12 +518,12 @@ export default function VideoPlayer({
           }
           setDuration(durRef.current);
           videoRef.current.playbackRate = playbackRate;
-          refreshAudioTracks();
+          if (!pipeMode) refreshAudioTracks();
 
           if (pendingSeekRef.current != null) {
             videoRef.current.currentTime = pendingSeekRef.current;
             pendingSeekRef.current = null;
-          } else if (quality === 'auto' && initialTime > 5) {
+          } else if (!pipeMode && initialTime > 5) {
             videoRef.current.currentTime = initialTime;
           }
 

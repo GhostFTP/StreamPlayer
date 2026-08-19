@@ -29,8 +29,12 @@ router.get('/', streamAuth, (req, res) => {
   }
   if (!fs.existsSync(filePath)) return res.status(404).send('File not found');
 
+  // `source` means "keep the original video quality" — used when Auto's raw
+  // passthrough would work fine except the audio codec isn't browser-safe,
+  // so we only need to re-encode the audio, not the (expensive) video.
+  const isSourceQuality = req.query.height === 'source';
   const height = parseInt(req.query.height, 10);
-  if (!ALLOWED_HEIGHTS.has(height)) return res.status(400).send('Invalid height');
+  if (!isSourceQuality && !ALLOWED_HEIGHTS.has(height)) return res.status(400).send('Invalid height');
 
   const start = Math.max(0, parseFloat(req.query.start) || 0);
 
@@ -39,9 +43,12 @@ router.get('/', streamAuth, (req, res) => {
   if (Number.isInteger(audioIndex) && audioIndex >= 0) {
     args.push('-map', '0:v:0', '-map', `0:a:${audioIndex}`);
   }
+  if (isSourceQuality) {
+    args.push('-c:v', 'copy');
+  } else {
+    args.push('-vf', `scale=-2:${height}`, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23');
+  }
   args.push(
-    '-vf', `scale=-2:${height}`,
-    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23',
     '-c:a', 'aac', '-b:a', '128k',
     '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
     '-f', 'mp4',

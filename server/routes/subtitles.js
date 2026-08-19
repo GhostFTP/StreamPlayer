@@ -111,6 +111,7 @@ function getAudioLanguages(videoPath) {
       lang: s.tags?.language || 'und',
       label: langLabel(s.tags?.language || 'und', s.tags?.title || ''),
       default: s.disposition?.default === 1,
+      codec: s.codec_name || null,
     }));
   } catch {
     return [];
