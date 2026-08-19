@@ -420,8 +420,11 @@ export default function VideoPlayer({
   }
 
   const subTrackUrl = (track) => {
-    const base = `/api/subtitles/file?path=${encodeURIComponent(track.path)}&token=${encodeURIComponent(token)}`;
-    return track.type === 'embedded' ? `${base}&stream=${track.streamIndex}` : base;
+    let url = `/api/subtitles/file?path=${encodeURIComponent(track.path)}&token=${encodeURIComponent(token)}`;
+    if (track.type === 'embedded') url += `&stream=${track.streamIndex}`;
+    // The transcoded pipe restarts its clock at `offset`, so re-base cues to match.
+    if (quality !== 'auto') url += `&start=${offset}`;
+    return url;
   };
 
   const effectiveVolume = muted ? 0 : volume;

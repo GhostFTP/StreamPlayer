@@ -52,6 +52,21 @@ function srtToVtt(srt) {
     .replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
 }
 
+// Re-base cue timestamps to 0 at `offsetSeconds` — needed because the
+// transcoded video pipe restarts its own clock at the seek point, while
+// subtitle cues are always timed against the original file.
+function shiftVttTimestamps(vtt, offsetSeconds) {
+  if (!offsetSeconds) return vtt;
+  return vtt.replace(/(\d{2}):(\d{2}):(\d{2})\.(\d{3})/g, (_, h, m, s, ms) => {
+    const total = Math.max(0, (+h) * 3600 + (+m) * 60 + (+s) + (+ms) / 1000 - offsetSeconds);
+    const hh  = String(Math.floor(total / 3600)).padStart(2, '0');
+    const mm  = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
+    const ss  = String(Math.floor(total % 60)).padStart(2, '0');
+    const mmm = String(Math.round((total % 1) * 1000)).padStart(3, '0');
+    return `${hh}:${mm}:${ss}.${mmm}`;
+  });
+}
+
 // Extract embedded subtitle stream list via ffprobe
 function getEmbeddedTracks(videoPath, relVideoPath) {
   try {
@@ -170,6 +185,7 @@ router.get('/', auth, (req, res) => {
 router.get('/file', streamAuth, (req, res) => {
   try {
     const filePath = safePath(req.query.path);
+    const start = Math.max(0, parseFloat(req.query.start) || 0);
 
     res.set('Content-Type', 'text/vtt; charset=utf-8');
     res.set('Access-Control-Allow-Origin', '*');
@@ -179,12 +195,11 @@ router.get('/file', streamAuth, (req, res) => {
       const streamIndex = parseInt(req.query.stream, 10);
       if (!fs.existsSync(filePath)) return res.status(404).end();
 
-      const proc = spawn('ffmpeg', [
-        '-i', filePath,
-        '-map', `0:s:${streamIndex}`,
-        '-f', 'webvtt',
-        'pipe:1',
-      ]);
+      const args = [];
+      if (start > 0) args.push('-ss', String(start));
+      args.push('-i', filePath, '-map', `0:s:${streamIndex}`, '-f', 'webvtt', 'pipe:1');
+
+      const proc = spawn('ffmpeg', args);
       proc.stdout.pipe(res);
       proc.stderr.resume(); // drain stderr to avoid blocking
       proc.on('error', () => res.status(500).end());
@@ -196,11 +211,17 @@ router.get('/file', streamAuth, (req, res) => {
     const ext = path.extname(filePath).toLowerCase();
 
     if (ext === '.vtt') {
-      fs.createReadStream(filePath).pipe(res);
+      const vtt = fs.readFileSync(filePath, 'utf8');
+      res.send(shiftVttTimestamps(vtt, start));
     } else if (ext === '.srt') {
-      res.send(srtToVtt(fs.readFileSync(filePath, 'utf8')));
+      const vtt = srtToVtt(fs.readFileSync(filePath, 'utf8'));
+      res.send(shiftVttTimestamps(vtt, start));
     } else {
-      const proc = spawn('ffmpeg', ['-i', filePath, '-f', 'webvtt', 'pipe:1']);
+      const args = [];
+      if (start > 0) args.push('-ss', String(start));
+      args.push('-i', filePath, '-f', 'webvtt', 'pipe:1');
+
+      const proc = spawn('ffmpeg', args);
       proc.stdout.pipe(res);
       proc.stderr.resume();
       proc.on('error', () => res.status(500).end());
