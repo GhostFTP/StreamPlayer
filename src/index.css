@@ -179,6 +179,35 @@ body {
 .btn:active:not(:disabled) { transform: scale(0.98); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--subtext);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.btn-google {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  box-sizing: border-box;
+}
+
+.btn-google:hover { background: var(--surface); }
+
 .error-msg {
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);

@@ -3,8 +3,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
-const { JWT_SECRET } = require('../config');
+const config = require('../config');
+const { JWT_SECRET, CLIENT_ORIGIN } = config;
 const auth = require('../middleware/auth');
+const passport = require('../middleware/passport');
 const { loginRateLimit, recordLoginFailure, recordLoginSuccess } = require('../middleware/loginRateLimit');
 
 const router = express.Router();
@@ -25,7 +27,7 @@ router.post('/login', loginRateLimit, async (req, res) => {
 
   const users = readUsers();
   const user = users.find(u => u.username === username);
-  if (!user) {
+  if (!user || !user.password) {
     recordLoginFailure(req);
     return res.status(401).json({ error: 'Invalid credentials' });
   }
@@ -63,5 +65,37 @@ router.put('/password', auth, async (req, res) => {
   writeUsers(users);
   res.json({ ok: true });
 });
+
+// --- Google OAuth (alternative sign-in, separate accounts from password-based users) ---
+
+router.get('/google', (req, res, next) => {
+  if (!config.GOOGLE_CLIENT_ID) {
+    return res.redirect(`${CLIENT_ORIGIN}/login?error=google_not_configured`);
+  }
+  passport.authenticate('google', { scope: ['profile', 'email'], session: true })(req, res, next);
+});
+
+router.get('/google/callback',
+  passport.authenticate('google', { session: true, failureRedirect: `${CLIENT_ORIGIN}/login?error=google` }),
+  (req, res) => {
+    const email = req.user?.email;
+    if (!email || !config.GOOGLE_ALLOWED_EMAILS.includes(email)) {
+      return res.redirect(`${CLIENT_ORIGIN}/login?error=not_allowed`);
+    }
+
+    const users = readUsers();
+    let user = users.find(u => u.googleId === req.user.googleId);
+    if (!user) {
+      const username = `${email.split('@')[0]}_google`;
+      user = { username, email, googleId: req.user.googleId, role: 'user' };
+      users.push(user);
+      writeUsers(users);
+    }
+
+    const role = user.role || 'user';
+    const token = jwt.sign({ username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+    res.redirect(`${CLIENT_ORIGIN}/auth/callback?token=${token}&username=${user.username}&role=${role}`);
+  }
+);
 
 module.exports = router;

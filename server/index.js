@@ -1,8 +1,10 @@
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
+const session = require('express-session');
 const path = require('path');
 const config = require('./config');
+const passport = require('./middleware/passport');
 
 const app = express();
 
@@ -13,6 +15,18 @@ const app = express();
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: config.CLIENT_ORIGIN }));
 app.use(express.json());
+
+// Session is only used for the few seconds of the Google OAuth handshake
+// (passport needs it to verify the state/callback round-trip) — normal app
+// auth stays stateless via JWT, this never gets touched outside that flow.
+app.use(session({
+  secret: config.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: config.NODE_ENV === 'production', sameSite: 'lax' },
+}));
+app.use(passport.initialize());
+app.use(passport.session());
 
 // TEMP: request timing log for diagnosing slow-first-playback reports. Remove once resolved.
 app.use((req, res, next) => {

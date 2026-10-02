@@ -7,6 +7,15 @@ export function AuthProvider({ children }) {
   const [username, setUsername] = useState(() => localStorage.getItem('sp_user'));
   const [role,     setRole]     = useState(() => localStorage.getItem('sp_role') || 'user');
 
+  const setSession = useCallback((newToken, newUsername, newRole) => {
+    localStorage.setItem('sp_token', newToken);
+    localStorage.setItem('sp_user',  newUsername);
+    localStorage.setItem('sp_role',  newRole || 'user');
+    setToken(newToken);
+    setUsername(newUsername);
+    setRole(newRole || 'user');
+  }, []);
+
   const login = useCallback(async (username, password) => {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
@@ -15,13 +24,12 @@ export function AuthProvider({ children }) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Login failed');
-    localStorage.setItem('sp_token', data.token);
-    localStorage.setItem('sp_user',  data.username);
-    localStorage.setItem('sp_role',  data.role || 'user');
-    setToken(data.token);
-    setUsername(data.username);
-    setRole(data.role || 'user');
-  }, []);
+    setSession(data.token, data.username, data.role);
+  }, [setSession]);
+
+  const loginWithToken = useCallback((newToken, newUsername, newRole) => {
+    setSession(newToken, newUsername, newRole);
+  }, [setSession]);
 
   const logout = useCallback(() => {
     localStorage.removeItem('sp_token');
@@ -33,7 +41,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ token, username, role, login, logout, isAuthenticated: !!token }}>
+    <AuthContext.Provider value={{ token, username, role, login, loginWithToken, logout, isAuthenticated: !!token }}>
       {children}
     </AuthContext.Provider>
   );
